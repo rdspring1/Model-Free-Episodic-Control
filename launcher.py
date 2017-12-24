@@ -11,7 +11,7 @@ try:
     import ale_python_interface
 except ImportError:
     import atari_py.ale_python_interface as ale_python_interface
-import cPickle
+import pickle
 import numpy as np
 
 import ale_experiment
@@ -242,7 +242,7 @@ def launch(args, defaults, description):
                                               rng)
         else:
             handle = open(parameters.qec_table, 'r')
-            qec_table = cPickle.load(handle)
+            qec_table = pickle.load(handle)
 
         agent = EC_agent.EpisodicControl(qec_table,
                                          parameters.ec_discount,

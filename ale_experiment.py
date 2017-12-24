@@ -4,6 +4,7 @@ Q-learning agent in the Arcade Learning Environment.
 Author: Nathan Sprague
 
 """
+import time
 import logging
 import numpy as np
 import image_preprocessing
@@ -50,10 +51,6 @@ class ALEExperiment(object):
             self.run_epoch(epoch, self.epoch_length)
             self.agent.finish_epoch(epoch)
 
-            if self.test_length > 0:
-                self.agent.start_testing()
-                self.run_epoch(epoch, self.test_length, True)
-                self.agent.finish_testing(epoch)
 
     def run_epoch(self, epoch, num_steps, testing=False):
         """ Run one 'epoch' of training or testing, where an epoch is defined
@@ -68,13 +65,23 @@ class ALEExperiment(object):
         """
         self.terminal_lol = False  # Make sure each epoch starts with a reset.
         steps_left = num_steps
+        start_time = time.time()
+
+        num_eps = 0
+        total_steps = 0
+        total_reward = 0
+
         while steps_left > 0:
             prefix = "testing" if testing else "training"
-            logging.info(prefix + " epoch: " + str(epoch) + " steps_left: " +
-                         str(steps_left))
-            _, num_steps = self.run_episode(steps_left, testing)
-
+            _, num_steps, reward = self.run_episode(steps_left, testing)
             steps_left -= num_steps
+
+            num_eps += 1
+            total_steps += num_steps
+            total_reward += reward
+        end_time = time.time()
+        output = "\t epoch: {}, time: {:.2f}, avg_len: {:.2f}, avg_score: {:.2f}".format(epoch, end_time-start_time, (total_steps/num_eps), (total_reward/num_eps))
+        logging.info(output)
 
     def _init_episode(self):
         """ This method resets the game if needed, performs enough null
@@ -148,32 +155,28 @@ class ALEExperiment(object):
                 break
 
             action = self.agent.step(reward, self.get_observation())
-        return terminal, num_steps
+        return terminal, num_steps, self.agent.episode_reward
 
     def get_observation(self):
         """ Resize and merge the previous two screen images """
 
         assert self.buffer_count >= 2
         index = self.buffer_count % self.buffer_length - 1
-        max_image = np.maximum(self.screen_buffer[index, ...],
-                               self.screen_buffer[index - 1, ...])
-        return self.resize_image(max_image)
+        max_image = np.maximum(self.screen_buffer[index, ...], self.screen_buffer[index - 1, ...])
+        result = self.resize_image(max_image)
+        return np.ascontiguousarray(result, dtype=np.float32) / 255.0
 
     def resize_image(self, image):
         """ Appropriately resize a single image """
 
         if self.resize_method == 'crop':
             # resize keeping aspect ratio
-            resize_height = int(round(
-                float(self.height) * self.resized_width / self.width))
-
+            resize_height = int(round(float(self.height) * self.resized_width / self.width))
             resized = image_preprocessing.resize(image, (self.resized_width, resize_height))
 
             # Crop the part we want
             crop_y_cutoff = resize_height - CROP_OFFSET - self.resized_height
-            cropped = resized[crop_y_cutoff:
-                              crop_y_cutoff + self.resized_height, :]
-
+            cropped = resized[crop_y_cutoff: crop_y_cutoff + self.resized_height, :]
             return cropped
         elif self.resize_method == 'scale':
             return image_preprocessing.resize(image, (self.resized_width, self.resized_height))

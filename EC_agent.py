@@ -6,7 +6,7 @@ import time
 import os
 import logging
 import numpy as np
-import cPickle
+import pickle
 import EC_functions
 
 
@@ -57,8 +57,8 @@ class EpisodicControl(object):
 
     def _open_results_file(self):
         logging.info("OPENING " + self.exp_dir + '/results.csv')
-        self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-        self.results_file.write('epoch, episode_nums, total_reward, avg_reward\n')
+        self.results_file = open(self.exp_dir + '/results.csv', 'w')
+        self.results_file.write("epoch, episode_nums, total_reward, avg_reward\n")
         self.results_file.flush()
 
     def _update_results_file(self, epoch, total_episodes, total_reward):
@@ -164,21 +164,14 @@ class EpisodicControl(object):
             q_return = q_return * self.ec_discount + node.reward
             self.qec_table.update(node.image, node.action, q_return)
 
-        # calculate time
-        rho = 0.98
-        self.steps_sec_ema *= rho
-        self.steps_sec_ema += (1. - rho) * (self.step_counter/total_time)
-        logging.info("steps/second: {:.2f}, avg: {:.2f}".format(
-            self.step_counter/total_time, self.steps_sec_ema))
-        logging.info('episode {} reward: {:.2f}'.format(self.total_episodes, self.episode_reward))
+        #logging.info('\t eps {}, reward: {:.2f}, length {}, steps/second: {:.2f}'.format(self.total_episodes, self.episode_reward, self.step_counter, self.step_counter/total_time))
 
     def finish_epoch(self, epoch):
-        qec_file = open(self.exp_dir + '/qec_table_file_' + str(epoch) + \
-                        '.pkl', 'w')
-        cPickle.dump(self.qec_table, qec_file, 2)
-        qec_file.close()
+        #qec_file = open(self.exp_dir + '/qec_table_file_' + str(epoch) + \ '.pkl', 'w')
+        #pickle.dump(self.qec_table, qec_file, 2)
+        #qec_file.close()
 
-        self._update_results_file(epoch, self.total_episodes, self.total_reward)
+        #self._update_results_file(epoch, self.total_episodes, self.total_reward)
         self.total_episodes = 0
         self.total_reward = 0
 
